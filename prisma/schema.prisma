@@ -1,0 +1,58 @@
+// Prisma schema — Phase 3 (auth & persistence).
+// See docs/architecture.md for why the resume is a single JSON column.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Application-side mirror of the Supabase auth user.
+///
+/// `id` is the Supabase `auth.users.id` (a UUID) — this table deliberately
+/// stores no credentials. Supabase owns authentication; we only keep the
+/// minimum profile needed to attribute rows and render a dashboard.
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resumes Resume[]
+
+  @@map("users")
+}
+
+/// One resume, stored as a single JSON document.
+///
+/// The canonical schema is the app's Zod `ResumeDoc`; `doc` is exactly that
+/// object. It is validated server-side on every write, so the column never
+/// holds a document the app cannot parse.
+model Resume {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  title     String
+  doc       Json
+  /// Presentation only: template choice + StyleConfig (Phase 6). Kept out
+  /// of `doc` so content and appearance stay separable. Nullable because
+  /// resumes created before templates existed simply use the defaults.
+  style     Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Forward-compatible placeholders. Phase 5+ builds folders and version
+  /// history; declaring the columns now avoids a later table rewrite.
+  /// No UI or logic reads these yet.
+  folderId       String? @db.Uuid
+  parentResumeId String? @db.Uuid
+  versionLabel   String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Every read is scoped by userId, so it leads the index.
+  @@index([userId, updatedAt])
+  @@map("resumes")
+}

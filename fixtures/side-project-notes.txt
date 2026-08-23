@@ -1,0 +1,7 @@
+Quick paste about a hackathon project in case it's useful:
+
+Built "Shelfie" at the 2024 Austin Hack Day with two other people — a phone
+app that scans a bookshelf and tells you what to read next. I did the image
+pipeline (on-device OCR + a small embedding model to match spines to a book
+database). We won second place out of ~40 teams. It's not live anywhere,
+just a demo.
